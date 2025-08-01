@@ -70,10 +70,12 @@
     }
 
     function drawBullets() {
-      ctx.fillStyle = "red";
-      player.bullets.forEach((b, i) => {
+      const bulletImg = new Image();
+    bulletImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAhGVYSWZNTQAqAAAACAAFARIAAwAAAAEAAQAAARoABQAAAAEAAABKARsABQAAAAEAAABSASgAAwAAAAEAAgAAh2kABAAAAAEAAABaAAAAAAAAAEgAAAABAAAASAAAAAEAA6ABAAMAAAABAAEAAKACAAQAAAABAAAA0KADAAQAAAABAAAAkAAAAACRQwJ/AAAAeklEQVR4nI2QQQqDQAxF/4xH8RA9cVfexF0XPUERmirudTCvixZGS4T+VXi8H0gSgP5IjqCZycwOLB03+ll3T3031e6mpYqbpMu118v5wvSxWDXZXMVFUslZz9xIKvE1AA9gwGm7OzASRQAFaLsbAx5KAD9Xnyf+RZA3/K9yIIE7qgEAAAAASUVORK5CYII=";
+
+    player.bullets.forEach((b, i) => {
         b.y -= 8;
-        ctx.fillRect(b.x, b.y, 5, 10);
+        ctx.drawImage(bulletImg, b.x, b.y, 10, 10);
         if (b.y < 0) player.bullets.splice(i, 1);
       });
     }
