@@ -149,6 +149,7 @@ let bossBullets = [];
     };
 
     let aliens = [];
+let explosions = [];
 
     function initAliens() {
       boss = null;
@@ -239,6 +240,7 @@ let bossBullets = [];
             b.y + 14 > a.y
           ) {
             a.alive = false;
+explosions.push({ x: a.x, y: a.y, time: Date.now() });
             player.bullets.splice(bi, 1);
           }
         });
@@ -259,6 +261,7 @@ let bossBullets = [];
 
       drawPlayer();
       drawAliens();
+drawExplosions();
       if (boss) {
         boss.x += boss.dx;
         boss.y = boss.baseY + Math.sin(Date.now() / 300) * 20;
@@ -353,6 +356,19 @@ function shoot() {
     playerImg.onload = tryStartGame;
     bulletImg.onload = tryStartGame;
     bossImg.onload = tryStartGame;
-  </script>
+  
+function drawExplosions() {
+  const now = Date.now();
+  ctx.font = "28px serif";
+  explosions = explosions.filter(e => {
+    const age = now - e.time;
+    if (age < 300) {
+      ctx.fillText("💥", e.x, e.y + 26);
+      return true;
+    }
+    return false;
+  });
+}
+</script>
 </body>
 </html>
