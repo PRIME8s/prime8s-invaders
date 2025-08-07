@@ -149,6 +149,13 @@ let gameOver = false;
 let player = {
   firing: false, x: 175, y: 520, width: 50, height: 50, speed: 5, bullets: [] };
 let aliens = [];
+
+function clampPlayer(){
+  if (player.x < 0) player.x = 0;
+  const maxX = canvas.width - player.width;
+  if (player.x > maxX) player.x = maxX;
+}
+
 let explosions = [];
 
 function shoot() {
@@ -250,6 +257,7 @@ function gameLoop() {
     else boss = null;
   }
 
+  clampPlayer();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawPlayer();
   drawAliens();
@@ -272,8 +280,8 @@ function initAliens() {
 }
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") player.x -= player.speed;
-  if (e.key === "ArrowRight") player.x += player.speed;
+  if (e.key === "ArrowLeft") { player.x -= player.speed; clampPlayer(); }
+  if (e.key === "ArrowRight") { player.x += player.speed; clampPlayer(); }
   if (e.key === " ") shoot();
 });
 
@@ -304,6 +312,7 @@ function startTouchMove(dir) {
   if (!touchMoveInterval) {
     touchMoveInterval = setInterval(() => {
       player.x += moveDirection * player.speed;
+      clampPlayer();
     }, 16);
   }
 }
