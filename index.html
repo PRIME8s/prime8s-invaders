@@ -1,362 +1,202 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pixel Invaders</title>
-  <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pixel Invaders: Sock Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;display=swap" rel="stylesheet"/>
+<style>
     body {
       margin: 0;
-      background: #000;
-      overflow: hidden;
+      background: linear-gradient(to bottom, #7b3f00, #422000);
+      font-family: 'Press Start 2P', monospace;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: start;
+      min-height: 100vh;
+      padding: 20px;
     }
     canvas {
-      background: #111;
       display: block;
-      margin-top: 10px;
-    }
-    .controls {
-      margin-top: 10px;
-    }
-    button {
-      flex: 1;
-      max-width: 120px;
-      margin: 0 5px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-weight: bold;
-    
-      font-size: 20px;
-      padding: 10px;
-      margin: 0 10px;
-    }
-    @keyframes pulse {
-      0% { transform: scale(1); background-color: #333; }
-      50% { transform: scale(1.1); background-color: #555; }
-      100% { transform: scale(1); background-color: #333; }
-    }
-
-    button:active {
-      transform: scale(0.95);
-      background-color: #666;
-    }
-
-    button {
-      animation: pulse 1.5s infinite;
-      transition: transform 0.1s, background-color 0.2s;
-    }
-  .arcade-frame {
-      padding: 10px;
-      border: 4px solid #0ff;
+      margin: 0 auto;
+      background: #111;
+      border: 4px solid #f80;
       border-radius: 16px;
-      box-shadow: 0 0 20px #0ff, 0 0 40px #0ff inset;
-      margin-top: 20px;
+      box-shadow: 0 0 20px #a0522d inset;
     }
-  body.arcade-machine {
-      background: radial-gradient(ellipse at center, #111 0%, #000 100%);
-      padding: 20px;
-      box-sizing: border-box;
-      border: 12px solid #0ff;
-      border-radius: 20px;
-      box-shadow: 0 0 40px #0ff, inset 0 0 40px #0ff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-    }
-  .joystick-layout {
-      display: flex;
-      flex-direction: row;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .joystick-group, .button-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .joystick-group button {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      font-size: 24px;
-      background: #444;
-      box-shadow: 0 0 10px #0ff;
-    }
-
-    .button-group button {
-      width: 80px;
-      height: 40px;
-      border-radius: 10px;
-      font-size: 18px;
-      background: #900;
-      box-shadow: 0 0 10px #f00;
-    }
-</style>
+  </style>
 </head>
-<body class="arcade-machine">
-  <div class="arcade-frame"><canvas id="gameCanvas" width="400" height="600"></canvas></div>
-  <div class="controls joystick-layout" style="position: fixed; bottom: 0; width: 100%; background: #111; padding: 10px; display: flex; justify-content: space-around;">
-    <button 
-      onmousedown="startMoving('left')" 
-      onmouseup="stopMoving()" 
-      onmouseleave="stopMoving()" 
-      ontouchstart="startMoving('left')" 
-      ontouchend="stopMoving()">⬅️</button>
-    <button onclick="shoot()">🧦</button>
-    <button 
-      onmousedown="startMoving('right')" 
-      onmouseup="stopMoving()" 
-      onmouseleave="stopMoving()" 
-      ontouchstart="startMoving('right')" 
-      ontouchend="stopMoving()">➡️</button>
-  </div>
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<body>
+<div style="color: #fff; font-family: 'Press Start 2P'; font-size: 12px; text-align: center;">
+  SCORE: <span id="score">0</span>   LEVEL: <span id="level">1</span>
+</div>
+<canvas height="600" id="gameCanvas" width="400">
+</canvas>
+<div id="mobileControls" style="margin-top: 20px; display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+<button ontouchend="stopTouchMove()" ontouchstart="startTouchMove(-1)" style="padding:15px 20px; font-size:24px; background:#ff9900; border:none; border-radius:8px;">⬅️</button>
+<button ontouchend="stopTouchMove()" ontouchstart="startTouchMove(1)" style="padding:15px 20px; font-size:24px; background:#ff9900; border:none; border-radius:8px;">➡️</button>
+<button ontouchstart="shoot()" style="padding:15px 20px; font-size:24px; background:#00ccff; border:none; border-radius:8px;">🔫</button>
+</div>
+<div id="restartContainer" style="display:none; margin-top:20px;">
+<button onclick="restartGame()" style="padding:10px 20px; font-family:'Press Start 2P'; font-size:12px;">RESTART</button>
+</div>
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-    const playerImg = new Image();
-    const bulletImg = new Image();
-    const bossImg = new Image();
+const playerImg = new Image();
+const projectileImg = new Image();
 
-    playerImg.src = "data:image/png;base64,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";
-    bulletImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAABV0lEQVR4nJ3SP0tbURzG8efeXGNsRAeNkEFwLXRpqUMpBATp0Bcgpb4FX4AOvglHwcXRpSIVLQiCGboVHIRWSyithCQaExL/3HvPOffboUZKqTeQZ/39PucHD0caMN5jg3q9/jqXy80mSaIwDL8Xi8WPqS8BQ8Bwo9FYs9YSxzG1Wm0fGOoD3Rrw1VrbdM7hnMMY0wU2U5CZA/eF/+cUWDBcvwWCf6D9/GcnecRCzO0vIO/3UBs2lo47Tz9d3v3VWXfLSCUpWu3tdVo3SFIAZIwxL8vteP4WjZ+0Iz0fCzSV9X5I4UHWGyvDjZH0RooVh6YqyQnIG+cqpcNz9q7ueH/0k+1GC7hYTisxkCTf9zMrzya0W2nq1cyEpke0LtkPadCXlPjS6dxkLgojq5nRoPpi9Mmu5xW+pcH7NhlxcAYQWd5tQaafefhywKKkgqQdz/Mqfa8Nmt8Z1Pi7ivWDcAAAAABJRU5ErkJggg==";
-    bossImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAAB4CAYAAAB1ovlvAAABV0lEQVR4nO3dsVFCQRRAUXCMMLUw7YEEK7AEKpCEHrQwU0ihBJ3v4gX+OQW82Z25s8kGb7EAAAAAAAAAAAAAAADg1ixHD3xZfZxGz+T6fB3fhrTzMGIITCVAUgIkJUBSAiQlQFICJCVAUgIkJUBSAiQlQFICJCVAUgIkJUBSAiQlQFICJPVYH+Ann4fNRea+Pu0uMvev5nZfLyApAZISICkBkhIgKQGSEiApAZISICkBkhIgKQGSEiApAZISICkBkhIgKQGSEiApAZISICmbkpjEpiTuggBJCZCUAEkJkJQASQmQlABJCZCUAEkJkJQASQmQlABJCZCUAEkJkNTV7wkZbf28rY/wK/vv9/oI/8ILSEqApARISoCkBEhKgKQESEqApARISoCkBEhqdn/Bc/ljvRVeQFICJCVAUgIkJUBSAiQlQFICJCVAAAAAAAAAAAAAAACY5Az+sROpjk2iHgAAAABJRU5ErkJggg==";
+let loadedCount = 0;
+function tryStartGame() {
+  loadedCount++;
+  if (loadedCount >= 2) {
+    initAliens();
+    if (level % 3 === 0) {
+      spawnBoss();
+      setInterval(fireBossProjectile, 1000);
+    }
+    else boss = null;
+    requestAnimationFrame(gameLoop);
+  }
+}
 
-    let level = 1;
-    let loadedImages = 0;
-    let boss = null;
-let bossBullets = [];
+playerImg.onload = tryStartGame;
+projectileImg.onload = tryStartGame;
 
-    const player = {
-      x: 175,
-      y: 520,
-      width: 50,
-      height: 50,
-      speed: 5,
-      bullets: []
-    };
+playerImg.src = "data:image/png;base64,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";
+projectileImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAACqUlEQVR4nNWVz2tcVRTHP/fdmffeZNJq01nUpKGUKqJCtIuusnKlFLpyJ9S1IF0JQv0LbNeCEN1ICYjuXPkDFLfOrrRQxDr9Yccx07GZJJ138+a++3XxMqlmkjBNVv3ChXcP95zv93sOhwfPOsykDyXZTqfztrW2XhQFALVajcFg0JqdnW3ulVeZlKDdbidRFH0+NTX1gvd+m8A5dw14b6+8aFKCpaUlF0JwWZYxOs45Qghuv7x9WyT598G+CRBCqOR5/lYURfUQAgDWWiS14jhuAsvGmG8nFbxFMPxSk+PybjV2bZGkmqQGTzEjIJXUKM9aQ/p571zJX5LUlXwmFWNSC+0W1YakbqHNbq5Bx8m9yj4KY6ABFgiT2YY6UI+oIgLCV8cI7klzx2Dxl97gbG9Q8PrxhPmpKpXtoh4Ijwvi7w34MhZOQ3QOyt3IhzlDnxeyQWMS7kvveElXbq/LLt/Sp6019SRtSpKCpA0VeviHpG0T0uBi2aFMUqbV1X/Ubv/lO53OwpjbBDIAinKRKhEk249M+QKTAumTLLP1XYbTNCVJYut9adCUKnQK+OSnrpv/4vfe4ovPp7wyHXNz1fFg3fHxwlFemjabEH0Iwztw7DtjTFHmZqchPTfS1u9nZFmuJEl+mJmZ6W/Z1BuS9OPDoVi+qY9udCVJH/z6QM9du67mo78lrThp48Tu890boyEHoIiKoT1Zr2KBPzc9sY2Yq1dRoT6YNYiqT0swcrAgya8XQb85r6u3VvTyN9f12e2eWs7r7tBdkPrHpa/tQR1EgJ2ODI3EEiTuP85Jkpj5xLKC7RuT9g4ifkTwCPgqh/kKLL52NOXdMzMcITTXoQV0D1J8DJLO71j/i4etuXPrazvuKYfE//4HkuaAxf+EmsaY1mFJnm38C2tj0Khwxg/FAAAAAElFTkSuQmCC";
 
-    let aliens = [];
+let score = 0;
+let level = 1;
+
+let boss = null;
+
+function spawnBoss() {
+  boss = { x: 100, y: 30, width: 80, height: 60, health: 20, direction: 1 };
+}
+
+function drawBoss() {
+  if (boss && boss.health > 0) {
+    ctx.font = "60px serif";
+    ctx.fillText("🛸", boss.x, boss.y + 60);
+    boss.x += boss.direction * 2;
+    if (boss.x < 0 || boss.x + boss.width > canvas.width) {
+      boss.direction *= -1;
+    }
+
+    // Draw health bar
+    ctx.fillStyle = "red";
+    ctx.fillRect(boss.x, boss.y - 10, boss.width, 5);
+    ctx.fillStyle = "lime";
+    ctx.fillRect(boss.x, boss.y - 10, boss.width * (boss.health / 20), 5);
+  }
+}
+
+function detectBossHit() {
+  if (boss && boss.health > 0) {
+    player.bullets.forEach((b, bi) => {
+      if (b.x < boss.x + boss.width && b.x + 24 > boss.x &&
+          b.y < boss.y + boss.height && b.y + 24 > boss.y) {
+        boss.health -= 1;
+        explosions.push({ x: b.x, y: b.y, time: Date.now() });
+        player.bullets.splice(bi, 1);
+        score += 50;
+        document.getElementById("score").textContent = score;
+      }
+    });
+  }
+}
+
+
+let bossProjectiles = [];
+
+function fireBossProjectile() {
+  if (boss && boss.health > 0) {
+    bossProjectiles.push({ x: boss.x + boss.width / 2 - 5, y: boss.y + boss.height });
+  }
+}
+
+function drawBossProjectiles() {
+  ctx.fillStyle = "lime";
+  bossProjectiles.forEach((p, i) => {
+    p.y += 6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Collision with player
+    if (
+      p.x > player.x &&
+      p.x < player.x + player.width &&
+      p.y > player.y &&
+      p.y < player.y + player.height
+    ) {
+      explosions.push({ x: p.x, y: p.y, time: Date.now() });
+      bossProjectiles.splice(i, 1);
+      gameOver = true;
+    }
+
+    if (p.y > canvas.height) bossProjectiles.splice(i, 1);
+  });
+}
+
+let gameOver = false;
+let player = {
+  firing: false, x: 175, y: 520, width: 50, height: 50, speed: 5, bullets: [] };
+let aliens = [];
 let explosions = [];
 
-    function initAliens() {
-      boss = null;
-      aliens = [];
-
-      if (level % 3 === 0) {
-        boss = {
-          x: 120,
-          y: 60,
-          width: 160,
-          height: 120,
-          hp: 10,
-          dx: 2,
-          dy: 1,
-          baseY: 60
-        };
-        return;
-      }
-
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 6; j++) {
-          aliens.push({
-            x: 50 + j * 50,
-            y: 50 + i * 40,
-            alive: true
-          });
-        }
-      }
-    }
-
-    function drawBoss() {
-      if (boss) {
-        ctx.drawImage(bossImg, boss.x, boss.y, boss.width, boss.height);
-      }
-    }
-
-    function drawAliens() {
-      ctx.fillStyle = "lime";
-      aliens.forEach(a => {
-        if (a.alive) ctx.font = "28px serif";
-    if (a.alive) {
-      ctx.fillText("👾", a.x, a.y + 26);
-    }
-      });
-    }
-
-    function drawPlayer() {
-      ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
-    }
-
-    function drawBullets() {
-      player.bullets.forEach((b, i) => {
-        b.y -= 8;
-        ctx.drawImage(bulletImg, b.x, b.y, 14, 14);
-        if (b.y < 0) player.bullets.splice(i, 1);
-      });
-    }
-
-    function detectCollisions() {
-      // Boss hit detection
-      if (boss) {
-        player.bullets.forEach((b, bi) => {
-          if (
-            b.x < boss.x + boss.width &&
-            b.x + 14 > boss.x &&
-            b.y < boss.y + boss.height &&
-            b.y + 14 > boss.y
-          ) {
-            boss.hp--;
-            player.bullets.splice(bi, 1);
-            if (boss.hp <= 0) {
-              boss = null;
-              level++;
-              initAliens();
-            }
-          }
-        });
-      }
-
-      // Aliens hit detection
-      player.bullets.forEach((b, bi) => {
-        aliens.forEach((a, ai) => {
-          if (
-            a.alive &&
-            b.x < a.x + 30 &&
-            b.x + 14 > a.x &&
-            b.y < a.y + 30 &&
-            b.y + 14 > a.y
-          ) {
-            a.alive = false;
-explosions.push({ x: a.x, y: a.y, time: Date.now() });
-            player.bullets.splice(bi, 1);
-          }
-        });
-      });
-    }
-
-    function gameLoop() {
-      if (aliens.length && aliens.every(a => !a.alive)) {
-        level++;
-        initAliens();
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      ctx.font = "20px sans-serif";
-      ctx.fillText("Level: " + level, 10, 25);
-      if (boss) ctx.fillText("Boss HP: " + boss.hp, 10, 50);
-
-      drawPlayer();
-      drawAliens();
-drawExplosions();
-      if (boss) {
-        boss.x += boss.dx;
-        boss.y = boss.baseY + Math.sin(Date.now() / 300) * 20;
-        if (boss.x <= 0 || boss.x + boss.width >= canvas.width) {
-          boss.dx *= -1;
-        }
-      }
-      drawBoss();
-      drawBullets();
-  drawBossBullets();
-      detectCollisions();
-
-      updateBossBullets();
-  requestAnimationFrame(gameLoop);
-    }
-
-    function moveLeft() {
-      player.x = Math.max(0, player.x - player.speed);
-    }
-
-    let moveInterval = null;
-let fireInterval = null;
-
-function startMoving(dir) {
-  stopMoving();
-  moveInterval = setInterval(() => {
-    if (dir === 'left') moveLeft();
-    if (dir === 'right') moveRight();
-  }, 50);
-}
-
-function stopMoving() {
-  clearInterval(moveInterval);
-}
-
-function moveRight() {
-      player.x = Math.min(canvas.width - player.width, player.x + player.speed);
-    }
-
-    function drawBossBullets() {
-      ctx.fillStyle = "orange";
-      bossBullets.forEach(b => {
-        ctx.fillRect(b.x, b.y, 6, 12);
-      });
-    }
-
-    function updateBossBullets() {
-      if (boss && Math.random() < 0.02) {
-        bossBullets.push({ x: boss.x + boss.width / 2 - 3, y: boss.y + boss.height });
-      }
-
-      bossBullets.forEach((b, i) => {
-        b.y += 4;
-        if (
-          b.x < player.x + player.width &&
-          b.x + 6 > player.x &&
-          b.y < player.y + player.height &&
-          b.y + 12 > player.y
-        ) {
-          alert("You were hit by the boss!");
-          location.reload();
-        }
-
-        if (b.y > canvas.height) bossBullets.splice(i, 1);
-      });
-    }
-
-    function startFiring() {
-  stopFiring();
-  fireInterval = setInterval(() => {
-    shoot();
-  }, 200);
-}
-
-function stopFiring() {
-  clearInterval(fireInterval);
-}
-
 function shoot() {
-      player.bullets.push({ x: player.x + player.width / 2 - 7, y: player.y });
-    }
+  player.firing = true;
+  setTimeout(() => player.firing = false, 100);
 
-    function tryStartGame() {
-      loadedImages++;
-      if (loadedImages === 3) {
-        initAliens();
-        updateBossBullets();
-  requestAnimationFrame(gameLoop);
-      }
-    }
+  player.bullets.push({ x: player.x + player.width / 2 - 12, y: player.y, angle: 0 });
+}
 
-    playerImg.onload = tryStartGame;
-    bulletImg.onload = tryStartGame;
-    bossImg.onload = tryStartGame;
-  
+function drawPlayer() {
+  if (player.firing) {
+    ctx.save();
+    ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+    ctx.scale(1.1, 1.1);
+    ctx.translate(-player.width / 2, -player.height / 2);
+    ctx.drawImage(playerImg, 0, 0, player.width, player.height);
+    ctx.restore();
+  } else {
+    ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+  }
+}
+
+function drawAliens() {
+  ctx.font = "28px serif";
+  aliens.forEach(a => {
+    if (a.alive) ctx.fillText("👾", a.x, a.y + 26);
+  });
+}
+
+function drawBullets() {
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+  player.bullets.forEach((b, i) => {
+    b.y -= 8;
+    b.angle = (b.angle || 0) + 0.2;
+    for (let t = 0; t < 5; t++) {
+      ctx.beginPath();
+      ctx.arc(b.x + 12, b.y + 24 + t * 5, 3 - t * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.translate(b.x + 12, b.y + 12);
+    ctx.rotate(b.angle);
+    ctx.drawImage(projectileImg, -12, -12, 24, 24);
+    ctx.rotate(-b.angle);
+    ctx.translate(-b.x - 12, -b.y - 12);
+    if (b.y < 0) player.bullets.splice(i, 1);
+  });
+  ctx.restore();
+}
+
 function drawExplosions() {
   const now = Date.now();
   ctx.font = "28px serif";
@@ -368,6 +208,107 @@ function drawExplosions() {
     }
     return false;
   });
+}
+
+function detectCollisions() {
+  let aliensKilled = 0;
+
+  player.bullets.forEach((b, bi) => {
+    aliens.forEach((a, ai) => {
+      if (a.alive && b.x < a.x + 30 && b.x + 14 > a.x && b.y < a.y + 30 && b.y + 14 > a.y) {
+        a.alive = false;
+        explosions.push({ x: a.x, y: a.y, time: Date.now() });
+        player.bullets.splice(bi, 1);
+        score += 10;
+        aliensKilled++;
+        document.getElementById("score").textContent = score;
+
+      }
+    });
+  });
+}
+
+function gameLoop() {
+  if (gameOver) {
+    ctx.fillStyle = "white";
+    ctx.font = "20px 'Press Start 2P'";
+    ctx.fillText("GAME OVER", 80, canvas.height / 2);
+    document.getElementById("restartContainer").style.display = "block";
+    return;
+  }
+
+  if (aliens.every(a => !a.alive) && (!boss || boss.health <= 0)) {
+    level++;
+    document.getElementById("level").textContent = level;
+    initAliens();
+    if (level % 3 === 0) {
+      spawnBoss();
+      setInterval(fireBossProjectile, 1000);
+    }
+    else boss = null;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawPlayer();
+  drawAliens();
+  drawBullets();
+  drawExplosions();
+  drawBoss();
+  drawBossProjectiles();
+  detectCollisions();
+  detectBossHit();
+  requestAnimationFrame(gameLoop);
+}
+
+function initAliens() {
+  aliens = [];
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 5; j++) {
+      aliens.push({ x: 60 + j * 50, y: 60 + i * 40, alive: true });
+    }
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") player.x -= player.speed;
+  if (e.key === "ArrowRight") player.x += player.speed;
+  if (e.key === " ") shoot();
+});
+
+function restartGame() {
+  // Reset game state
+  player.x = 175;
+  player.bullets = [];
+  boss = null;
+  bossProjectiles = [];
+  aliens = [];
+  explosions = [];
+  score = 0;
+  level = 1;
+  gameOver = false;
+  document.getElementById("score").textContent = "0";
+  document.getElementById("level").textContent = "1";
+  document.getElementById("restartContainer").style.display = "none";
+  initAliens();
+  requestAnimationFrame(gameLoop);
+}
+
+
+let touchMoveInterval = null;
+let moveDirection = 0;
+
+function startTouchMove(dir) {
+  moveDirection = dir;
+  if (!touchMoveInterval) {
+    touchMoveInterval = setInterval(() => {
+      player.x += moveDirection * player.speed;
+    }, 16);
+  }
+}
+
+function stopTouchMove() {
+  clearInterval(touchMoveInterval);
+  touchMoveInterval = null;
 }
 </script>
 </body>
